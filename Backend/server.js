@@ -8,12 +8,16 @@ const dotenv = require('dotenv');
 dotenv.config();
 const app = express();
 const server = http.createServer(app);
-const io = socketIO(server , {
+
+// Environment-based CORS handling
+const io = socketIO(server, {
     cors: {
-      origin: "http://localhost:3000", // allow CORS for your frontend
-      methods: ["GET", "POST"]
-    }
-  });
+        origin: process.env.NODE_ENV === 'production'
+            ? "https://your-frontend-url.vercel.app" // Replace with your deployed frontend URL
+            : "http://localhost:3000", // Localhost for development
+        methods: ["GET", "POST"],
+    },
+});
 
 app.use(cors());
 app.use(express.json());
@@ -25,7 +29,7 @@ mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopol
 
 // User Schema
 const userSchema = new mongoose.Schema({
-    username: { type: String, required: true, unique: true }
+    username: { type: String, required: true, unique: true },
 });
 const User = mongoose.model('User', userSchema);
 
@@ -34,9 +38,14 @@ const messageSchema = new mongoose.Schema({
     from: { type: String, required: true },
     to: { type: String, required: true },
     message: { type: String, required: true },
-    timestamp: { type: Date, default: Date.now }
+    timestamp: { type: Date, default: Date.now },
 });
 const Message = mongoose.model('Message', messageSchema);
+
+// Health check route
+app.get('/health', (req, res) => {
+    res.status(200).send('Backend is running');
+});
 
 // Register User
 app.post('/register', async (req, res) => {
@@ -62,8 +71,8 @@ app.get('/messages/:from/:to', async (req, res) => {
     const messages = await Message.find({
         $or: [
             { from, to },
-            { from: to, to: from }
-        ]
+            { from: to, to: from },
+        ],
     }).sort('timestamp');
     res.send(messages);
 });
@@ -85,5 +94,6 @@ io.on('connection', (socket) => {
     });
 });
 
+// Listening on dynamic or default port
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
