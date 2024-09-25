@@ -94,6 +94,10 @@ io.on('connection', (socket) => {
     });
 });
 
+app.get("/", (req, res) => {
+    res.send("<h1>Welcome to My API</h1>");
+  });
+
 // Listening on dynamic or default port
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
